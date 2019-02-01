@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Post;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Post\PostRequest;
+use App\Model\Category;
+use App\Model\CategoryPost;
 use App\Model\Post;
 use Illuminate\Http\Request;
 
@@ -15,16 +17,30 @@ class PostController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
         try{
-            $data= Post::where("is_active",true)->get();
-            return response(['status' => true, 'resutlt' =>$data ],200);
+            $export=null;
+            $page = $request->input('page') ?: 0;
+            $count = $request->input('count') ?: 30;
+            $data= Post::select("id","title","summery","publish_time")
+                ->where("is_active",true)
+                ->take((int)$count)
+                ->offset(((int)$page - 1) * $count)
+                ->get();
 
+            if($data){
+                $data=$data->toArray();
+                foreach($data as $row){
+                    $row["category"]=Category::getList($row["id"]);
+                    $export=$row;
+                }
+            }
+
+
+            return response(['status' => true, 'resutlt' =>$export ],200);
         }catch (\Exception $e){
-
             return response(['status' => false, 'message' => $e->getMessage()],403);
-
         }
     }
 
@@ -47,7 +63,13 @@ class PostController extends Controller
     public function store(PostRequest $request)
     {
         try {
-            return Post::create($request->json()->all());
+            $data=$request->json()->all();
+            $post= Post::create($data);
+            if(array_key_exists("category_ids",$data)){
+                CategoryPost::saveCategory($post->id,$data["category_ids"]);
+            }
+            return $post;
+
         } catch (\Exception $e) {
             return response(['message' => $e->getMessage()],403);
         }
@@ -56,12 +78,19 @@ class PostController extends Controller
     /**
      * Display the specified resource.
      *
-     * @param  \App\Model\Post  $post
      * @return \Illuminate\Http\Response
      */
-    public function show(Post $post)
+    public function show(Request $request)
     {
-        //
+        $post=Post::where("id",$request->get("id"))->where("is_active",true)->first();
+        if($post){
+            $post=$post->toArray();
+            $post["category"]=Category::getList($post["id"]);
+            return response(['status' => true, 'resutlt' =>$post],200);
+        }else{
+            return response(['status' => false, 'message' =>"not found"],401);
+        }
+
     }
 
     /**
@@ -82,14 +111,27 @@ class PostController extends Controller
      * @param  \App\Model\Post  $post
      * @return \Illuminate\Http\Response
      */
-    public function update(Post $post,PostRequest $request)
+    public function update(PostRequest $request)
     {
         try {
+            $data=$request->json()->all();
+            if(isset($data["id"])){
+                $post=Post::where("id",$data["id"])->first();
+                if($post){
+                    if( $post->update($data)){
+                        if(array_key_exists("category_ids",$data)){
+                            CategoryPost::updateCategory($data["id"],$data["category_ids"]);
+                        }else{
+                            CategoryPost::updateCategory($data["id"],null);
+                        }
 
-            $data=$request->all();
-            unset($data["_method"]);
-            if( $post->update($data)){
-                return ['status' => true];
+                        return response(['status' => true ],200);
+                    }else{
+                        return response(['status' => false],401);
+                    }
+                }else{
+                    return response(['status' => false],401);
+                }
             }else{
                 return response(['status' => false],401);
             }
@@ -101,11 +143,16 @@ class PostController extends Controller
     /**
      * Remove the specified resource from storage.
      *
-     * @param  \App\Model\Post  $post
+
      * @return \Illuminate\Http\Response
      */
-    public function destroy(Post $post)
+    public function destroy(Request $request)
     {
-        //
+
+        if(Post::where("id",$request->get("id"))->delete()){
+            return response(['status' => true, ],200);
+        }else{
+            return response(['status' => false],403);
+        }
     }
 }

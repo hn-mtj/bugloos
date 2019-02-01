@@ -17,6 +17,7 @@ class CreatePostsTable extends Migration
             $table->increments('id');
             $table->char('title',250);
             $table->text('content');
+            $table->char('summery',255)->nullable();
             $table->timestamp('publish_time')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();

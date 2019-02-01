@@ -6,7 +6,7 @@ use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class PostRequest extends FormRequest
+class CategoryRequest extends FormRequest
 {
     /**
      * Get the validator instance for the request.
@@ -44,11 +44,7 @@ class PostRequest extends FormRequest
     {
         return [
             "id"=>"nullable",
-            "title"=>"required",
-            "content"=>"required",
-            "is_active"=>"required|boolean",
-            "publish_time"=>"required",
-            "category_ids"=>"nullable",
+            "name"=>"required",
         ];
     }
 

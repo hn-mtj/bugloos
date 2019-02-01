@@ -17,12 +17,24 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+//$this->middleware(['auth:api','authorize'])->group(function() {
+    $this->namespace('Post')->group(function () {
 
-$this->namespace('Post')->group(function() {
-    $this->get('post', 'postController@index');
-    $this->post('post', 'postController@store');
-    $this->get('post/{id}', 'postController@edit');
-    $this->patch('post/{id}', 'postController@update');
-    $this->delete('post/{id}', 'postController@destroy');
+        $this->get('post', 'postController@index');
+        $this->get('post/show', 'postController@show');
+        $this->post('post', 'postController@store');
+        $this->patch('post/{id}', 'postController@update');
+        $this->get('post/delete', 'postController@destroy');
 
-});
+    });
+
+    $this->namespace('Post')->group(function () {
+
+        $this->get('category', 'CategoryController@index');
+        $this->get('category/show', 'CategoryController@show');
+        $this->post('category', 'CategoryController@store');
+        $this->patch('category/{id}', 'CategoryController@update');
+        $this->get('category/delete', 'CategoryController@destroy');
+
+    });
+//});
